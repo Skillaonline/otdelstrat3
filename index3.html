@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CRID // STRATEGIC PLANNING — ROOM_SP_4</title>
+<style>
+:root{
+  --bg:#060b12; --panel:#0e1728; --ring:#22365a; --ink:#e6eef9;
+  --muted:#8aa0bd; --accent:#67e8f9; --ok:#22c55e; --err:#ef4444; --warn:#fbbf24;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:radial-gradient(1200px 800px at 70% 10%,#0f172a 0,#0a1020 50%,var(--bg) 70%);
+  color:var(--ink); font:15px/1.45 "JetBrains Mono","Cascadia Mono","Courier New",monospace;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.wrap{
+  width:min(1000px,96vw); background:linear-gradient(180deg,#101a34,#0b1326 60%,#0a1222);
+  border:1px solid var(--ring); border-radius:18px; box-shadow:0 22px 70px #000a; overflow:hidden;
+}
+header{padding:14px 20px;border-bottom:1px solid var(--ring);display:flex;justify-content:space-between;align-items:baseline}
+h1{margin:0;font-size:16px;letter-spacing:.06em;color:#cfe3ff}
+small{color:var(--muted)}
+main{padding:20px;display:grid;gap:18px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #223355}
+th{color:#cfe3ff;font-weight:600;font-size:13px}
+tr:hover td{background:#0c1732}
+.sel input{width:18px;height:18px}
+.totals{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #223355;font-size:14px}
+.status{min-height:30px;margin-top:6px;text-align:center;font-weight:600}
+.ok{color:var(--ok)} .err{color:var(--err)} .warn{color:var(--warn)}
+.controls{display:flex;gap:10px;justify-content:center;margin-top:10px}
+.btn{border:1px solid #2a4677;background:#13284f;color:#dbeafe;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;transition:.25s}
+.btn:hover{filter:brightness(115%)}
+.qr{display:none;text-align:center;margin-top:20px;padding:16px;border:1px solid #1b4d3f;border-radius:14px;background:#0a2019}
+.qr img{width:160px;height:160px;filter:drop-shadow(0 0 8px #22c55e88)}
+.qr.show{display:block;animation:fade .5s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>CRID // STRATEGIC PLANNING</h1>
+    <small>ROOM_SP_4 — Портфель под ограничения</small>
+  </header>
+  <main>
+    <p>Выберите комбинацию действий, чтобы достичь требуемого эффекта, сохранив ограничения.</p>
+    <table>
+      <thead>
+        <tr>
+          <th></th><th>Код</th><th>Описание</th><th>Стоимость</th><th>Эффект</th><th>Риск</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="totals">
+      <div>Бюджет ≤ <b>9</b> | Риск ≤ <b>7</b> | Эффект ≥ <b>16</b></div>
+      <div>Выбрано: <span id="selList">—</span></div>
+    </div>
+    <div class="totals">
+      <div>Стоимость: <b id="cost">0</b></div>
+      <div>Эффект: <b id="effect">0</b></div>
+      <div>Риск: <b id="risk">0</b></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="checkBtn">Проверить</button>
+      <button class="btn" id="clearBtn">Сбросить</button>
+    </div>
+    <div id="status" class="status"></div>
+
+    <div class="qr" id="qr">
+      <div style="margin-bottom:8px;color:#bbf7d0">Портфель согласован<br>Доступ к следующему узлу открыт: Проследуйте в ROOM_5//Сектор связи/COMM-NODE</div>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script>
+const DATA = [
+  { code:"A", name:"Синхронизация запасного канала", cost:4, eff:9, risk:3 },
+  { code:"B", name:"Продление ключей узла N",         cost:3, eff:6, risk:4 },
+  { code:"C", name:"Перенос ядра связности",          cost:5, eff:10,risk:3 },
+  { code:"D", name:"Проверка маршрута «Север-4»",     cost:2, eff:4, risk:2 },
+  { code:"E", name:"Инвентаризация микроузлов",       cost:1, eff:2, risk:1 },
+  { code:"F", name:"Перезапуск кластера «Альфа»",    cost:6, eff:11,risk:5 },
+];
+
+const tbody=document.getElementById("rows");
+DATA.forEach(d=>{
+  const tr=document.createElement("tr");
+  tr.innerHTML=`
+    <td class="sel"><input type="checkbox" data-code="${d.code}"></td>
+    <td><b>${d.code}</b></td>
+    <td>${d.name}</td>
+    <td>${d.cost}</td>
+    <td>${d.eff}</td>
+    <td>${d.risk}</td>`;
+  tbody.appendChild(tr);
+});
+
+const boxes=[...document.querySelectorAll("input[type=checkbox]")];
+const costEl=document.getElementById("cost");
+const effEl=document.getElementById("effect");
+const riskEl=document.getElementById("risk");
+const selList=document.getElementById("selList");
+const st=document.getElementById("status");
+const qr=document.getElementById("qr");
+
+function recalc(){
+  let cost=0,eff=0,risk=0;
+  let sel=[];
+  boxes.forEach(b=>{
+    if(b.checked){
+      const d=DATA.find(x=>x.code===b.dataset.code);
+      cost+=d.cost; eff+=d.eff; risk+=d.risk; sel.push(d.code);
+    }
+  });
+  costEl.textContent=cost;
+  effEl.textContent=eff;
+  riskEl.textContent=risk;
+  selList.textContent=sel.length?sel.join("+"):"—";
+  return {cost,eff,risk,sel};
+}
+boxes.forEach(b=>b.addEventListener("change",recalc));
+
+document.getElementById("clearBtn").addEventListener("click",()=>{
+  boxes.forEach(b=>b.checked=false);
+  recalc(); st.textContent=""; st.className="status"; qr.classList.remove("show");
+});
+
+document.getElementById("checkBtn").addEventListener("click",()=>{
+  const {cost,eff,risk,sel}=recalc();
+  if(sel.length===0){msg("Выберите хотя бы одно действие.","err");return;}
+  if(cost<=9 && risk<=7 && eff>=16){
+    // проверим правильность (AC или CA)
+    const ok = (sel.join("")==="AC" || sel.join("")==="CA");
+    if(ok){
+      msg("Портфель согласован. Эффективность подтверждена.","ok");
+      qr.classList.add("show");
+    } else {
+      msg("Решение допустимо, но не оптимально. Риск выше нормы.","warn");
+    }
+  } else {
+    msg("Ограничения не соблюдены.","err");
+  }
+});
+function msg(t,c){st.textContent=t;st.className="status "+c;}
+</script>
+</body>
+</html>
